@@ -93,7 +93,7 @@ body {
 /* Hero Section */
 .hero {
     background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-                url('https://placeholder-image-service.onrender.com/image/1200x800?promxt=Elegante jamón ibérico en soporte de madera con cuchillos tradicionales&id=hero') center/cover no-repeat;
+                url('https://ibb.co/VYkrqgts') center/cover no-repeat;
     height: 100vh;
     display: flex;
     align-items: center;
