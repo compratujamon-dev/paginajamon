@@ -130,4 +130,218 @@ document.addEventListener('DOMContentLoaded', () => {
             hero.style.opacity = 1;
         }
     }, 100);
+
+    // Sistema de Autenticación
+    let currentUser  = null; // Para rastrear sesión activa
+
+    // Función para mostrar/ocultar modales
+    function showModal(modalId) {
+        document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function hideModal() {
+        document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
+    }
+
+    // Funciones auxiliares para localStorage ("BD")
+    function getUsersFromStorage() {
+        const users = localStorage.getItem('users');
+        return users ? JSON.parse(users) : [];
+    }
+
+    function saveUsersToStorage(users) {
+        localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    function showError(element, message) {
+        element.innerHTML = message;
+        element.classList.add('show');
+        // Limpiar error después de 5s
+        setTimeout(() => element.classList.remove('show'), 5000);
+    }
+
+    function updateHeaderForLoggedIn() {
+        const loginLink = document.getElementById('login-link');
+        if (loginLink && currentUser ) {
+            loginLink.innerHTML = `<a href="#">Hola, ${currentUser .name} (Cerrar Sesión)</a>`;
+            const logoutLink = loginLink.querySelector('a');
+            logoutLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentUser  = null;
+                localStorage.removeItem('currentUser ');
+                loginLink.innerHTML = '<a href="#" id="show-login">Iniciar Sesión</a>';
+                // Re-asignar event listener al nuevo botón
+                const newShowLogin = document.getElementById('show-login');
+                if (newShowLogin) {
+                    newShowLogin.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showModal('login-modal');
+                    });
+                }
+                alert('Sesión cerrada.');
+            });
+        }
+    }
+
+    // Event listeners para modales y autenticación
+    // Botón para mostrar login
+    const showLoginBtn = document.getElementById('show-login');
+    if (showLoginBtn) {
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal('login-modal');
+        });
+    }
+
+    // Cerrar modales al clic en X
+    document.querySelectorAll('.close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', hideModal);
+    });
+
+    // Cerrar modal al clic fuera
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideModal();
+        });
+    });
+
+    // Enlace de registro desde login
+    const showRegFromLogin = document.getElementById('show-register');
+    if (showRegFromLogin) {
+        showRegFromLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideModal();
+            showModal('register-modal');
+        });
+    }
+
+    // Enlace de login desde registro
+    const showLoginFromReg = document.getElementById('show-login-from-reg');
+    if (showLoginFromReg) {
+        showLoginFromReg.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideModal();
+            showModal('login-modal');
+        });
+    }
+
+    // Lógica de Registro
+    const registerForm = document.getElementById('register-form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const confirmEmail = document.getElementById('reg-confirm-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+
+            const errorEl = document.getElementById('register-error');
+
+            // Validaciones
+            if (!name || !email || !confirmEmail || !password || !confirmPassword) {
+                showError(errorEl, 'Todos los campos son obligatorios.');
+                return;
+            }
+
+            if (email !== confirmEmail) {
+                showError(errorEl, 'Los correos electrónicos no coinciden.');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError(errorEl, 'La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showError(errorEl, 'Las contraseñas no coinciden.');
+                return;
+            }
+
+            // Verificar si email ya existe (consulta "BD")
+            const users = getUsersFromStorage();
+            if (users.find(user => user.email === email)) {
+                showError(errorEl, 'Este correo ya está registrado. Inicia sesión.');
+                return;
+            }
+
+            // Guardar nuevo usuario en localStorage
+            const newUser  = { name, email, password }; // En producción: hashear password
+            users.push(newUser );
+            saveUsersToStorage(users);
+
+            alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
+            registerForm.reset();
+            hideModal();
+            showModal('login-modal');
+        });
+    }
+
+    // Lógica de Login
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            const errorEl = document.getElementById('login-error');
+
+            if (!email || !password) {
+                showError(errorEl, 'Correo y contraseña son obligatorios.');
+                return;
+            }
+
+            // Consultar "BD" localStorage
+            const users = getUsersFromStorage();
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (!user) {
+                let errorMsg = 'Correo o contraseña incorrectos.';
+                if (!document.getElementById('show-register-error')) {
+                    errorMsg += ' ¿No estás registrado? <a href="#" id="show-register-error">Regístrate aquí</a>';
+                }
+                showError(errorEl, errorMsg);
+
+                // Agregar enlace dinámico si no existe
+                const existingLink = document.getElementById('show-register-error');
+                if (!existingLink) {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.id = 'show-register-error';
+                    link.innerHTML = 'Regístrate aquí';
+                    link.style.color = '#8B4513'; // Usar primary-color
+                    link.style.textDecoration = 'none';
+                    link.style.cursor = 'pointer';
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        hideModal();
+                        showModal('register-modal');
+                    });
+                    errorEl.appendChild(document.createTextNode(' '));
+                    errorEl.appendChild(link);
+                }
+                return;
+            }
+
+            // Login exitoso
+            currentUser  = user;
+            localStorage.setItem('currentUser ', JSON.stringify(currentUser )); // Persistencia
+            alert(`¡Bienvenido, ${user.name}!`);
+            loginForm.reset();
+            hideModal();
+            updateHeaderForLoggedIn();
+        });
+    }
+
+    // Cargar sesión si existe (persistencia)
+    const savedUser  = localStorage.getItem('currentUser ');
+    if (savedUser ) {
+        currentUser  = JSON.parse(savedUser );
+        updateHeaderForLoggedIn();
+    }
 });
