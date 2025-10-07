@@ -84,22 +84,30 @@ function toggleContactForm() {
     const submitBtn = document.getElementById('contact-submit');
 
     if (currentUser ) {
-        // Habilitar formulario
-        inputs.forEach(input => input.disabled = false);
+        // Habilitar formulario si hay sesión
+        if (contactForm) {
+            inputs.forEach(input => input.disabled = false);
+            contactForm.reset(); // Resetear campos al habilitar
+        }
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Enviar Mensaje';
         }
-        if (contactLock) contactLock.classList.add('hidden');
-        contactForm.reset(); // Resetear campos al habilitar
+        if (contactLock) {
+            contactLock.classList.add('hidden'); // Ocultar mensaje
+        }
     } else {
-        // Deshabilitar formulario
-        inputs.forEach(input => input.disabled = true);
+        // Deshabilitar formulario si no hay sesión
+        if (contactForm) {
+            inputs.forEach(input => input.disabled = true);
+        }
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Inicia Sesión para Enviar';
         }
-        if (contactLock) contactLock.classList.remove('hidden');
+        if (contactLock) {
+            contactLock.classList.remove('hidden'); // Mostrar mensaje
+        }
     }
 }
 
@@ -163,14 +171,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         showModal('login-modal');
                     });
                 }
-                toggleContactForm(); // Actualizar formulario al logout
+                toggleContactForm(); // Deshabilitar formulario al logout
                 alert('Sesión cerrada.');
             });
+        } else if (loginLink) {
+            // Restaurar botón original si no hay sesión
+            loginLink.innerHTML = '<a href="#" id="show-login">Iniciar Sesión</a>';
+            const showLoginBtn = document.getElementById('show-login');
+            if (showLoginBtn) {
+                showLoginBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showModal('login-modal');
+                });
+            }
         }
     }
 
     // Event listeners para modales y autenticación
-    // Botón para mostrar login
+    // Botón para mostrar login (en header)
     const showLoginBtn = document.getElementById('show-login');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', (e) => {
@@ -320,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginForm.reset();
             hideModal();
             updateHeaderForLoggedIn();
-            toggleContactForm(); // Habilitar formulario al login
+            toggleContactForm(); // Habilitar formulario y ocultar mensaje al login
         });
     }
 
@@ -334,12 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar estado del formulario de contacto
     toggleContactForm();
 
-    // Event listener para enlace "iniciar sesión" en mensaje de bloqueo
+    // Event listener para enlace "iniciar sesión" en mensaje de bloqueo (abre modal de login)
     const contactLoginLink = document.getElementById('contact-login-link');
     if (contactLoginLink) {
         contactLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
-            showModal('login-modal');
+            showModal('login-modal'); // Envía directamente al modal de inicio de sesión
         });
     }
 
@@ -349,10 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            // Check de sesión antes de proceder
+            // Check de sesión antes de proceder (redundante con disabled, pero extra seguridad)
             if (!currentUser ) {
                 alert('Debes iniciar sesión para enviar mensajes.');
-                showModal('login-modal');
+                showModal('login-modal'); // Si por algún motivo no está logueado, abre modal
                 return;
             }
 
