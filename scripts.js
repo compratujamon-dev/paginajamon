@@ -65,49 +65,6 @@ document.querySelectorAll('.types-grid, .steps, .gallery-grid, .contact-form').f
     observer.observe(section);
 });
 
-// Validación y envío del formulario con EmailJS
-const contactForm = document.querySelector('.contact-form');
-if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const inputs = contactForm.querySelectorAll('input, textarea');
-        const emailInput = contactForm.querySelector('input[type="email"]');
-        let isValid = true;
-
-        // Regex simple para validar email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        inputs.forEach(input => {
-            if (!input.value.trim()) {
-                input.style.borderColor = 'red';
-                isValid = false;
-            } else {
-                input.style.borderColor = '#ddd';
-                if (input === emailInput && !emailRegex.test(input.value)) {
-                    input.style.borderColor = 'red';
-                    isValid = false;
-                }
-            }
-        });
-
-        if (isValid) {
-            // Enviar formulario con EmailJS
-            emailjs.sendForm('service_etfwtmm', 'template_g0u3p8s', contactForm)
-                .then(() => {
-                    alert('¡Mensaje enviado con éxito! Te contactaremos pronto.');
-                    contactForm.reset();
-                    inputs.forEach(input => input.style.borderColor = '#ddd');
-                }, (error) => {
-                    console.error('Error al enviar:', error);
-                    alert('Error al enviar el mensaje. Inténtalo de nuevo.');
-                });
-        } else {
-            alert('Por favor, completa todos los campos correctamente.');
-        }
-    });
-}
-
 // Precarga de imágenes para mejor rendimiento
 function preloadImages() {
     const images = document.querySelectorAll('img');
@@ -117,6 +74,33 @@ function preloadImages() {
             new Image().src = src;
         }
     });
+}
+
+// Función para habilitar/deshabilitar formulario de contacto basado en sesión
+function toggleContactForm() {
+    const contactForm = document.getElementById('contact-form-restricted');
+    const contactLock = document.getElementById('contact-lock');
+    const inputs = contactForm ? contactForm.querySelectorAll('input, textarea') : [];
+    const submitBtn = document.getElementById('contact-submit');
+
+    if (currentUser ) {
+        // Habilitar formulario
+        inputs.forEach(input => input.disabled = false);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar Mensaje';
+        }
+        if (contactLock) contactLock.classList.add('hidden');
+        contactForm.reset(); // Resetear campos al habilitar
+    } else {
+        // Deshabilitar formulario
+        inputs.forEach(input => input.disabled = true);
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Inicia Sesión para Enviar';
+        }
+        if (contactLock) contactLock.classList.remove('hidden');
+    }
 }
 
 // Inicializar cuando el documento esté cargado
@@ -179,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         showModal('login-modal');
                     });
                 }
+                toggleContactForm(); // Actualizar formulario al logout
                 alert('Sesión cerrada.');
             });
         }
@@ -335,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginForm.reset();
             hideModal();
             updateHeaderForLoggedIn();
+            toggleContactForm(); // Habilitar formulario al login
         });
     }
 
@@ -343,5 +329,67 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedUser ) {
         currentUser  = JSON.parse(savedUser );
         updateHeaderForLoggedIn();
+    }
+
+    // Inicializar estado del formulario de contacto
+    toggleContactForm();
+
+    // Event listener para enlace "iniciar sesión" en mensaje de bloqueo
+    const contactLoginLink = document.getElementById('contact-login-link');
+    if (contactLoginLink) {
+        contactLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal('login-modal');
+        });
+    }
+
+    // Validación y envío del formulario con EmailJS (modificado para restricción)
+    const contactFormRestricted = document.getElementById('contact-form-restricted');
+    if (contactFormRestricted) {
+        contactFormRestricted.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Check de sesión antes de proceder
+            if (!currentUser ) {
+                alert('Debes iniciar sesión para enviar mensajes.');
+                showModal('login-modal');
+                return;
+            }
+
+            const inputs = contactFormRestricted.querySelectorAll('input, textarea');
+            const emailInput = contactFormRestricted.querySelector('input[type="email"]');
+            let isValid = true;
+
+            // Regex simple para validar email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = 'red';
+                    isValid = false;
+                } else {
+                    input.style.borderColor = '#ddd';
+                    if (input === emailInput && !emailRegex.test(input.value)) {
+                        input.style.borderColor = 'red';
+                        isValid = false;
+                    }
+                }
+            });
+
+            if (isValid) {
+                // Enviar formulario con EmailJS
+                emailjs.sendForm('service_etfwtmm', 'template_g0u3p8s', contactFormRestricted)
+                    .then(() => {
+                        alert('¡Mensaje enviado con éxito! Te contactaremos pronto.');
+                        contactFormRestricted.reset();
+                        inputs.forEach(input => input.style.borderColor = '#ddd');
+                    }, (error) => {
+                        console.error('Error al enviar:', error);
+                        alert('Error al enviar el mensaje. Inténtalo de nuevo.');
+                    });
+            } else {
+                alert('Por favor, completa todos los campos correctamente.');
+            }
+        });
     }
 });

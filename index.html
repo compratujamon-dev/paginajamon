@@ -19,7 +19,7 @@
                 </div>
                 <ul class="nav-menu">
                     <li><a href="#inicio">Inicio</a></li>
-                    <li><a href="#tipos">Servicios</a></li>
+                    <!-- <li><a href="#tipos">Tipos</a></li> -->
                      <!-- <li><a href="#tecnica">Técnica</a></li> -->
                     <li><a href="#galeria">Galería</a></li>
                     <li><a href="#contacto">Contacto</a></li>
@@ -46,17 +46,17 @@
         </div>
     </section>
 
-    <!--Servicios-->
+    <!-- Tipos de Jamón 
        <section id="tipos" class="types">
         <div class="container">
-            <h2>Servicios</h2>
+            <h2>Tipos de Jamón</h2>
             <div class="types-grid">
                 <div class="type-card">
                     <div class="type-image">
                         <img src="https://placeholder-image-service.onrender.com/image/400x300?prompt=Jamón ibérico de bellota de alta calidad con vetas de grasa blanca sobre tabla de madera&id=jam1" alt="Jamón Ibérico de Bellota con vetas de grasa sobre tabla de madera">
                     </div>
-                    <h3>Corte profesional eventos</h3>
-                    <p>Servicio profesional para todo tipo de eventos: bodas, celebraciones, ferias, presentaciones. Garantizando una presencia elegante, precisa y respetuosa con el producto.</p>
+                    <h3>Jamón Ibérico de Bellota</h3>
+                    <p>Procedente de cerdos criados en libertad y alimentados con bellotas. Máxima calidad y sabor intenso.</p>
                 </div>
                 <div class="type-card">
                     <div class="type-image">
@@ -74,7 +74,7 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> -->
   
 
     <!-- Técnica de Corte
@@ -136,21 +136,25 @@
         </div>
     </section>
 
-    <!-- Contacto -->
+    <!-- Contacto (Modificado con restricción) -->
     <section id="contacto" class="contact">
         <div class="container">
             <h2>Contacto</h2>
-            <form class="contact-form">
+            <!-- Mensaje de bloqueo si no logueado -->
+            <div id="contact-lock" class="contact-lock">
+                <p>Debes <a href="#" id="contact-login-link">iniciar sesión</a> para enviar un mensaje.</p>
+            </div>
+            <form class="contact-form" id="contact-form-restricted">
                 <div class="form-group">
-                    <input type="text" name="user_name" placeholder="Nombre" required>
+                    <input type="text" name="user_name" placeholder="Nombre" required disabled>
                 </div>
                 <div class="form-group">
-                    <input type="email" name="user_email" placeholder="Email" required>
+                    <input type="email" name="user_email" placeholder="Email" required disabled>
                 </div>
                 <div class="form-group">
-                    <textarea name="message" placeholder="Mensaje" rows="5" required></textarea>
+                    <textarea name="message" placeholder="Mensaje" rows="5" required disabled></textarea>
                 </div>
-                <button type="submit" class="btn-primary">Enviar Mensaje</button>
+                <button type="submit" class="btn-primary" id="contact-submit" disabled>Inicia Sesión para Enviar</button>
             </form>
         </div>
     </section>

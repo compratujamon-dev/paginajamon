@@ -497,3 +497,42 @@ body {
         padding: 1.5rem;
     }
 }
+
+/* Estilos para Restricción de Contacto */
+.contact-lock {
+    text-align: center;
+    background-color: var(--light-bg);
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+    color: var(--text-color);
+    font-style: italic;
+}
+
+.contact-lock a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.contact-lock a:hover {
+    text-decoration: underline;
+}
+
+.contact-form input:disabled,
+.contact-form textarea:disabled,
+.contact-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f5f5f5;
+}
+
+.contact-form button:disabled:hover {
+    background-color: var(--primary-color);
+    transform: none;
+}
+
+/* Ocultar mensaje cuando habilitado */
+.contact-lock.hidden {
+    display: none;
+}
