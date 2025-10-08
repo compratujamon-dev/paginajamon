@@ -19,8 +19,20 @@ try {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Inicializar EmailJS con tu Public Key
-emailjs.init("IKUkRhnZ6eu1NSnBO");
+// Inicializar EmailJS con tu Public Key (para v4)
+emailjs.init("IKUkRhnZ6eu1NSnBO");  // Reemplaza con tu Public Key real
+
+// Lista de dominios reales permitidos (para validar emails "reales")
+const allowedDomains = [
+  'gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com',
+  'protonmail.com', 'aol.com', 'live.com', 'msn.com'
+];
+
+// Función para validar dominio real
+function isValidDomain(email) {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return allowedDomains.some(allowed => domain === allowed || domain?.endsWith('.' + allowed));
+}
 
 // Navegación móvil
 const menuToggle = document.querySelector('.menu-toggle');
@@ -51,16 +63,15 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const targetId = this.getAttribute('href');
         const target = document.querySelector(targetId);
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
+    if (target) {
+        target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
 });
 
-// Efecto parallax en hero section
+// Efecto parallax en hero section (opcional, ajusta si no lo quieres)
 window.addEventListener('scroll', () => {
     const hero = document.querySelector('.hero');
     if (!hero) return;
@@ -69,7 +80,7 @@ window.addEventListener('scroll', () => {
     hero.style.backgroundPosition = `center ${rate}px`;
 });
 
-// Animación de aparición para secciones
+// Animación de aparición para secciones (opcional)
 const observerOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
@@ -85,7 +96,7 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, observerOptions);
 
-document.querySelectorAll('.types-grid, .steps, .gallery-grid, .contact-form').forEach(section => {
+document.querySelectorAll('.gallery, .contact').forEach(section => {
     section.style.opacity = 0;
     section.style.transform = 'translateY(20px)';
     section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
@@ -123,30 +134,62 @@ function showError(element, message) {
     }
 }
 
-// Actualizar header para usuario logueado
+// Actualizar header para usuario logueado (con verificación)
 function updateHeaderForLoggedIn(user) {
     const loginLink = document.getElementById('login-link');
     if (loginLink && user) {
-        const name = user.email.split('@')[0];
-        loginLink.innerHTML = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
-        const logoutLink = loginLink.querySelector('a');
-        if (logoutLink) {
-            logoutLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error.'));
-            });
-        }
-        db.collection('users').doc(user.uid).get().then((doc) => {
-            if (doc.exists) {
-                const fullName = doc.data().name;
-                loginLink.innerHTML = `<a href="#">Hola, ${fullName} (Cerrar Sesión)</a>`;
-                const newLogoutLink = loginLink.querySelector('a');
-                if (newLogoutLink) newLogoutLink.addEventListener('click', (e) => {
+        let headerText = '';
+        if (user.emailVerified) {
+            // Verificado: Muestra nombre y logout
+            const name = user.email.split('@')[0];
+            headerText = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
+            const logoutLink = loginLink.querySelector('a');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', (e) => {
                     e.preventDefault();
                     auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error.'));
                 });
             }
-        }).catch((error) => console.error('Error Firestore:', error));
+            // Cargar nombre completo de Firestore
+            db.collection('users').doc(user.uid).get().then((doc) => {
+                if (doc.exists) {
+                    const fullName = doc.data().name;
+                    loginLink.innerHTML = `<a href="#">Hola, ${fullName} (Cerrar Sesión)</a>`;
+                    const newLogoutLink = loginLink.querySelector('a');
+                    if (newLogoutLink) newLogoutLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error.'));
+                    });
+                }
+            }).catch((error) => console.error('Error Firestore:', error));
+        } else {
+            // No verificado: Muestra mensaje y botón reenvío
+            const name = user.email.split('@')[0];
+            headerText = `Hola, ${name} - <span style="color: orange;">Email no verificado</span> <button id="resend-verification" style="background: none; border: none; color: blue; cursor: pointer;">Reenviar Verificación</button>`;
+            loginLink.innerHTML = headerText;
+            // Event listener para reenvío
+            const resendBtn = document.getElementById('resend-verification');
+            if (resendBtn) {
+                resendBtn.addEventListener('click', () => {
+                    user.sendEmailVerification().then(() => {
+                        alert('Email de verificación reenviado. Revisa tu bandeja.');
+                    }).catch((error) => {
+                        console.error('Error reenviando:', error);
+                        alert('Error al reenviar. Intenta más tarde.');
+                    });
+                });
+            }
+            // Logout funcional
+            const logoutPart = loginLink.querySelector('a');
+            if (logoutPart) {
+                logoutPart.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'BUTTON') {
+                        e.preventDefault();
+                        auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error.'));
+                    }
+                });
+            }
+        }
     } else if (loginLink) {
         loginLink.innerHTML = '<a href="#" id="show-login">Iniciar Sesión</a>';
         const showLoginBtn = document.getElementById('show-login');
@@ -160,32 +203,37 @@ function updateHeaderForLoggedIn(user) {
     }
 }
 
-// Toggle formulario de contacto
+// Toggle formulario de contacto (solo si verificado)
 function toggleContactForm() {
     const user = auth.currentUser ;
-    console.log('toggleContactForm: Usuario autenticado:', !!user);
+    console.log('toggleContactForm: Usuario autenticado:', !!user, 'Verificado:', user ? user.emailVerified : false);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
     const inputs = contactForm ? contactForm.querySelectorAll('input, textarea') : [];
     const submitBtn = document.getElementById('contact-submit');
 
-    if (user) {
-        console.log('Habilitando formulario');
+    if (user && user.emailVerified) {
+        console.log('Habilitando formulario (verificado)');
         inputs.forEach(input => input.disabled = false);
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Enviar Mensaje';
         }
-        if (contactLock) contactLock.classList.add('hidden');
+        if (contactLock) contactLock.style.display = 'none';  // Oculta lock
         if (contactForm) contactForm.reset();
     } else {
-        console.log('Deshabilitando formulario');
+        console.log('Deshabilitando formulario (no logueado o no verificado)');
         inputs.forEach(input => input.disabled = true);
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Inicia Sesión para Enviar';
+            submitBtn.textContent = user ? 'Verifica tu Email para Enviar' : 'Inicia Sesión para Enviar';
         }
-        if (contactLock) contactLock.classList.remove('hidden');
+        if (contactLock) {
+            contactLock.style.display = 'block';
+            contactLock.innerHTML = user ? 
+                '<p>🔒 Verifica tu email para enviar mensajes. <a href="#" id="contact-login-link">Reenviar Verificación</a></p>' :
+                '<p>🔒 Debes <a href="#" id="contact-login-link">iniciar sesión</a> para enviar mensajes.</p>';
+        }
     }
 }
 
@@ -199,12 +247,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hero) hero.style.opacity = 1;
     }, 100);
 
-    // Auth state change
+    // Auth state change (con verificación)
     auth.onAuthStateChanged((user) => {
         if (user) {
-            console.log('Usuario logueado:', user.email);
+            console.log('Usuario logueado:', user.email, 'Verificado:', user.emailVerified);
             updateHeaderForLoggedIn(user);
             toggleContactForm();
+            // Recarga verificación si es necesario (Firebase actualiza en ~1 min)
+            if (!user.emailVerified) {
+                setTimeout(() => {
+                    user.reload().then(() => {
+                        const updatedUser  = auth.currentUser ;
+                        if (updatedUser  && updatedUser .emailVerified !== user.emailVerified) {
+                            location.reload();  // Recarga página para actualizar UI
+                        }
+                    });
+                }, 5000);  // Chequea cada 5s hasta verificar
+            }
         } else {
             console.log('No hay usuario logueado');
             updateHeaderForLoggedIn(null);
@@ -256,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro
+    // Lógica de Registro (con validación de dominio y envío de verificación)
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -269,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmPassword = document.getElementById('reg-confirm-password').value;
             const errorEl = document.getElementById('register-error');
 
+            // Validaciones básicas
             if (!name || !email || !confirmEmail || !password || !confirmPassword) {
                 showError(errorEl, 'Todos los campos son obligatorios.');
                 return;
@@ -285,6 +345,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError(errorEl, 'Las contraseñas no coinciden.');
                 return;
             }
+            // Validación de dominio real
+            if (!isValidDomain(email)) {
+                showError(errorEl, 'Usa un email real de un proveedor conocido (ej. @gmail.com, @outlook.com).');
+                return;
+            }
 
             console.log('Iniciando registro con email:', email);
 
@@ -292,17 +357,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then((userCredential) => {
                     const user = userCredential.user;
                     console.log('Usuario creado en Auth:', user.uid);
-                    return db.collection('users').doc(user.uid).set({
-                        name: name,
-                        email: email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    // Enviar email de verificación
+                    return user.sendEmailVerification({
+                        url: window.location.origin + '/#inicio',  // Redirige a tu sitio después de verificar
+                        handleCodeInApp: true
+                    }).then(() => {
+                        console.log('Email de verificación enviado');
+                        return db.collection('users').doc(user.uid).set({
+                            name: name,
+                            email: email,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
                     });
                 })
                 .then(() => {
                     console.log('Datos guardados en Firestore exitosamente');
-                    alert('¡Registro exitoso! Bienvenido.');
+                    alert('¡Registro exitoso! Revisa tu email para verificar tu cuenta y poder enviar mensajes.');
                     registerForm.reset();
                     hideModal();
+                    // No habilita form hasta verificación
                 })
                 .catch((error) => {
                     console.error('Error en registro:', error.code, error.message);
@@ -310,104 +383,97 @@ document.addEventListener('DOMContentLoaded', () => {
                         showError(errorEl, 'Este correo ya está registrado. Inicia sesión.');
                     } else if (error.code === 'auth/weak-password') {
                         showError(errorEl, 'La contraseña es débil. Usa al menos 6 caracteres.');
-                    } else {
-                        showError(errorEl, 'Error en registro: ' + error.message);
-                    }
-                });
-        });
-    }
-
-    // Lógica de Login
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            const errorEl = document.getElementById('login-error');
-
-            if (!email || !password) {
-                showError(errorEl, 'Correo y contraseña son obligatorios.');
-                return;
-            }
-
-            console.log('Iniciando login con email:', email);
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log('Login exitoso:', user.email);
-                    alert('¡Bienvenido!');
-                    loginForm.reset();
-                    hideModal();
-                })
-                .catch((error) => {
-                    console.error('Error en login:', error.code, error.message);
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        showError(errorEl, 'Correo o contraseña incorrectos.');
-                    } else {
-                        showError(errorEl, 'Error en login: ' + error.message);
-                    }
-                });
-        });
-    }
-
-    // Enlace en contacto
-    const contactLoginLink = document.getElementById('contact-login-link');
-    if (contactLoginLink) {
-        contactLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            showModal('login-modal');
-        });
-    }
-
-    // Submit de contacto (FIX COMPLETO: Envía mensaje con datos de usuario)
-    const contactFormRestricted = document.getElementById('contact-form-restricted');
-    if (contactFormRestricted) {
-        contactFormRestricted.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const user = auth.currentUser ;
-            if (!user) {
-                alert('Debes iniciar sesión para enviar mensajes.');
-                showModal('login-modal');
-                return;
-            }
-
-            // Obtener datos del formulario
-            const fromName = contactFormRestricted.querySelector('input[name="from_name"]').value.trim();
-            const fromEmail = contactFormRestricted.querySelector('input[name="from_email"]').value.trim();
-            const message = contactFormRestricted.querySelector('textarea[name="message"]').value.trim();
-
-            // Validación
-            if (!fromName || !fromEmail || !message) {
-                alert('Por favor, completa todos los campos correctamente.');
-                return;
-            }
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!emailRegex.test(fromEmail)) {
-                            alert('Email inválido.');
-                            return;
-                        }
-            
-                        // Enviar el mensaje usando EmailJS
-                        emailjs.send("service_etfwtmm", "template_g0u3p8s", {
-                            from_name: fromName,
-                            from_email: fromEmail,
-                            message: message,
-                            user_id: user.uid
-                        })
-                        .then(() => {
-                            alert('Mensaje enviado correctamente.');
-                            contactFormRestricted.reset();
-                        })
-                        .catch((error) => {
-                            console.error('Error al enviar mensaje:', error);
-                            alert('Hubo un error al enviar el mensaje.');
-                        });
+                                } else if (error.code === 'auth/invalid-email') {
+                                        showError(errorEl, 'El correo electrónico no es válido.');
+                                    } else {
+                                        showError(errorEl, 'Error en el registro: ' + error.message);
+                                    }
+                                });
                     });
-                }
-            }); // <-- Cierra el eventListener de DOMContentLoaded
+                    
+                        // Listener para contacto login link (en lock)
+                        document.addEventListener('click', (e) => {
+                            if (e.target && e.target.id === 'contact-login-link') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                hideModal();
+                                showModal('login-modal');
+                            }
+                        });
+                    
+                        // Lógica de Login
+                        const loginForm = document.getElementById('login-form');
+                        if (loginForm) {
+                            loginForm.addEventListener('submit', (e) => {
+                                e.preventDefault();
+                                const email = document.getElementById('login-email').value.trim();
+                                const password = document.getElementById('login-password').value;
+                                const errorEl = document.getElementById('login-error');
+                    
+                                if (!email || !password) {
+                                    showError(errorEl, 'Completa ambos campos.');
+                                    return;
+                                }
+                                auth.signInWithEmailAndPassword(email, password)
+                                    .then((userCredential) => {
+                                        const user = userCredential.user;
+                                        if (!user.emailVerified) {
+                                            showError(errorEl, 'Verifica tu email antes de enviar mensajes.');
+                                        }
+                                        loginForm.reset();
+                                        hideModal();
+                                    })
+                                    .catch((error) => {
+                                        if (error.code === 'auth/wrong-password') {
+                                            showError(errorEl, 'Contraseña incorrecta.');
+                                        } else if (error.code === 'auth/user-not-found') {
+                                            showError(errorEl, 'Usuario no encontrado.');
+                                        } else if (error.code === 'auth/invalid-email') {
+                                            showError(errorEl, 'Email inválido.');
+                                        } else {
+                                            showError(errorEl, 'Error: ' + error.message);
+                                        }
+                                    });
+                            });
+                        }
+                    
+                        // Lógica de envío de contacto (solo si verificado)
+                        const contactForm = document.getElementById('contact-form-restricted');
+                        if (contactForm) {
+                            contactForm.addEventListener('submit', (e) => {
+                                e.preventDefault();
+                                const user = auth.currentUser;
+                                const name = document.getElementById('contact-name').value.trim();
+                                const email = document.getElementById('contact-email').value.trim();
+                                const message = document.getElementById('contact-message').value.trim();
+                                const errorEl = document.getElementById('contact-error');
+                    
+                                if (!user || !user.emailVerified) {
+                                    showError(errorEl, 'Debes iniciar sesión y verificar tu email.');
+                                    return;
+                                }
+                                if (!name || !email || !message) {
+                                    showError(errorEl, 'Completa todos los campos.');
+                                    return;
+                                }
+                                if (!isValidDomain(email)) {
+                                    showError(errorEl, 'Usa un email real de un proveedor conocido.');
+                                    return;
+                                }
+                    
+                                // Envía con EmailJS
+                                emailjs.send("service_etfwtmm", "template_g0u3p8s", {
+                                    from_name: name,
+                                    from_email: email,
+                                    message: message
+                                })
+                                .then(() => {
+                                    alert('Mensaje enviado correctamente.');
+                                    contactForm.reset();
+                                })
+                                .catch((error) => {
+                                    showError(errorEl, 'Error al enviar: ' + error.text || error.message);
+                                });
+                            });
+                        }
+                    });
