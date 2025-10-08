@@ -1,11 +1,12 @@
 // Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console - ¡OBLIGATORIO!)
 const firebaseConfig = {
-  apiKey: "AIzaSyD...TU_API_KEY_AQUI",  // COPIA EL REAL AQUÍ (de Project Settings)
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+ apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
+  authDomain: "solocorte-auth.firebaseapp.com",
+  projectId: "solocorte-auth",
+  storageBucket: "solocorte-auth.firebasestorage.app",
+  messagingSenderId: "567755213765",
+  appId: "1:567755213765:web:30c6d1586048f5a78119ac",
+  measurementId: "G-VVCV84Y6W4"	
 };
 
 // Inicializar Firebase
