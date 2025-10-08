@@ -1,12 +1,11 @@
 // Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console - ¡OBLIGATORIO!)
 const firebaseConfig = {
- apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
-  authDomain: "solocorte-auth.firebaseapp.com",
-  projectId: "solocorte-auth",
-  storageBucket: "solocorte-auth.firebasestorage.app",
-  messagingSenderId: "567755213765",
-  appId: "1:567755213765:web:30c6d1586048f5a78119ac",
-  measurementId: "G-VVCV84Y6W4"	
+  apiKey: "AIzaSyD...TU_API_KEY_AQUI",  // COPIA EL REAL AQUÍ (de Project Settings)
+  authDomain: "tu-proyecto.firebaseapp.com",
+  projectId: "tu-proyecto",
+  storageBucket: "tu-proyecto.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
 };
 
 // Inicializar Firebase
@@ -165,7 +164,7 @@ function updateHeaderForLoggedIn(user) {
 
 // Toggle formulario de contacto
 function toggleContactForm() {
-    const user = auth.currentUser  ;
+    const user = auth.currentUser ;
     console.log('toggleContactForm: Usuario autenticado:', !!user);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -259,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro (sin cambios, método corregido)
+    // Lógica de Registro (método corregido)
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -320,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Login (sin cambios)
+    // Lógica de Login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -366,25 +365,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Submit de contacto (ACTUALIZADO: Incluye datos del usuario logueado en el email)
+    // Submit de contacto (COMPLETO: Incluye datos del usuario logueado en el email)
     const contactFormRestricted = document.getElementById('contact-form-restricted');
     if (contactFormRestricted) {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            const user = auth.currentUser  ;
+            const user = auth.currentUser ;
             if (!user) {
                 alert('Debes iniciar sesión para enviar mensajes.');
                 showModal('login-modal');
                 return;
             }
 
-            // Obtener datos del formulario
-            const fromName = contactFormRestricted.querySelector('input[name="from_name"]').value.trim();  // Asume name="from_name" en input
-            const fromEmail = contactFormRestricted.querySelector('input[name="from_email"]').value.trim();  // Asume name="from_email"
-            const message = contactFormRestricted.querySelector('textarea[name="message"]').value.trim();  // Asume name="message"
+            // Obtener datos del formulario (asume names en HTML: from_name, from_email, message)
+            const fromName = contactFormRestricted.querySelector('input[name="from_name"]').value.trim();
+            const fromEmail = contactFormRestricted.querySelector('input[name="from_email"]').value.trim();
+            const message = contactFormRestricted.querySelector('textarea[name="message"]').value.trim();
 
-            // Validación básica
+            // Validación
             const inputs = contactFormRestricted.querySelectorAll('input, textarea');
             const emailInput = contactFormRestricted.querySelector('input[type="email"]');
             let isValid = true;
@@ -409,21 +408,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Obtener nombre del usuario de Firestore (fallback a email)
-            let userName = user.email.split('@')[0];  // Fallback
+            let userName = user.email.split('@')[0];
             db.collection('users').doc(user.uid).get().then((doc) => {
-                if (doc.exists) {
-                    userName = doc.data().name || userName;
+                if (doc.exists && doc.data().name) {
+                    userName = doc.data().name;
                 }
 
                 // Parámetros para EmailJS (incluye datos de usuario)
                 const templateParams = {
-                    user_name: userName,  // Nombre del usuario logueado
-                    user_email: user.email,  // Email del usuario logueado
-                    from_name: fromName,  // Nombre del form
-                    from_email: fromEmail,  // Email del form
-                    message: message  // Mensaje
-                };
-
-                console.log('Enviando email con params:', templateParams);
-
-                // Enviar
+                    user_name:
