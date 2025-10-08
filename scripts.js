@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
             
                         // Enviar el mensaje usando EmailJS
-                        emailjs.send("service_7w6w3gk", "template_1w7xw2b", {
+                        emailjs.send("service_etfwtmm", "template_g0u3p8s", {
                             from_name: fromName,
                             from_email: fromEmail,
                             message: message,
