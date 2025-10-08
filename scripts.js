@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro (SOLUCIONADO: Promise chaining limpia, sin try-catch malformado)
+    // Lógica de Registro (CORREGIDO: Método sin espacio - línea ~291 ahora fija)
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Iniciando registro con email:', email);
 
             // Crear usuario en Auth y guardar en Firestore (cadena de promesas limpia)
-            auth.createUser WithEmailAndPassword(email, password)
+            auth.createUserWithEmailAndPassword(email, password)  // CORREGIDO: Sin espacio
                 .then((userCredential) => {
                     const user = userCredential.user;
                     console.log('Usuario creado en Auth:', user.uid);
