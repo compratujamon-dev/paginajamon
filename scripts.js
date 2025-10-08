@@ -1,3 +1,18 @@
+// Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console)
+const firebaseConfig = {
+  apiKey: "AIzaSyD...TU_API_KEY_AQUI",  // Ejemplo: "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  authDomain: "tu-proyecto.firebaseapp.com",
+  projectId: "tu-proyecto",
+  storageBucket: "tu-proyecto.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
 // Inicializar EmailJS con tu Public Key
 emailjs.init("IKUkRhnZ6eu1NSnBO");
 
@@ -5,10 +20,12 @@ emailjs.init("IKUkRhnZ6eu1NSnBO");
 const menuToggle = document.querySelector('.menu-toggle');
 const navMenu = document.querySelector('.nav-menu');
 
-menuToggle.addEventListener('click', () => {
-    navMenu.classList.toggle('active');
-    menuToggle.classList.toggle('active');
-});
+if (menuToggle && navMenu) {
+    menuToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('active');
+        menuToggle.classList.toggle('active');
+    });
+}
 
 // Cerrar menú al hacer clic en un enlace
 document.querySelectorAll('.nav-menu a').forEach(link => {
@@ -52,7 +69,7 @@ const observer = new IntersectionObserver((entries) => {
         if (entry.isIntersecting) {
             entry.target.style.opacity = 1;
             entry.target.style.transform = 'translateY(0)';
-            observer.unobserve(entry.target); // Para optimizar
+            observer.unobserve(entry.target);
         }
     });
 }, observerOptions);
@@ -76,19 +93,84 @@ function preloadImages() {
     });
 }
 
-// Función para habilitar/deshabilitar formulario de contacto basado en sesión
+// Función para mostrar/ocultar modales
+function showModal(modalId) {
+    document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('active');
+}
+
+function hideModal() {
+    document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
+}
+
+// Función para mostrar errores
+function showError(element, message) {
+    if (element) {
+        element.innerHTML = message;
+        element.classList.add('show');
+        setTimeout(() => element.classList.remove('show'), 5000);
+    }
+}
+
+// Función para actualizar header con usuario (adaptada a Firebase)
+function updateHeaderForLoggedIn(user) {
+    const loginLink = document.getElementById('login-link');
+    if (loginLink && user) {
+        // Recupera nombre de Firestore
+        db.collection('users').doc(user.uid).get().then((doc) => {
+            const name = doc.exists ? doc.data().name : user.email.split('@')[0];
+            loginLink.innerHTML = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
+            const logoutLink = loginLink.querySelector('a');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    auth.signOut().then(() => {
+                        alert('Sesión cerrada.');
+                    }).catch((error) => {
+                        console.error('Error al cerrar sesión:', error);
+                        alert('Error al cerrar sesión.');
+                    });
+                });
+            }
+        }).catch((error) => {
+            console.error('Error al obtener datos de usuario:', error);
+            // Fallback: Usa email como nombre
+            loginLink.innerHTML = `<a href="#">Hola, ${user.email.split('@')[0]} (Cerrar Sesión)</a>`;
+            // Agrega listener de logout igual
+            const logoutLink = loginLink.querySelector('a');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error al cerrar sesión.'));
+                });
+            }
+        });
+    } else if (loginLink) {
+        loginLink.innerHTML = '<a href="#" id="show-login">Iniciar Sesión</a>';
+        const showLoginBtn = document.getElementById('show-login');
+        if (showLoginBtn) {
+            showLoginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal('login-modal');
+            });
+        }
+    }
+}
+
+// Función para habilitar/deshabilitar formulario de contacto basado en sesión (adaptada a Firebase)
 function toggleContactForm() {
+    const user = auth.currentUser ;
+    console.log('toggleContactForm: Usuario autenticado:', !!user);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
     const inputs = contactForm ? contactForm.querySelectorAll('input, textarea') : [];
     const submitBtn = document.getElementById('contact-submit');
 
-    if (currentUser ) {
-        // Habilitar formulario si hay sesión
-        if (contactForm) {
-            inputs.forEach(input => input.disabled = false);
-            contactForm.reset(); // Resetear campos al habilitar
-        }
+    if (user) {
+        // Habilitar: Permitir enviar mensajes
+        console.log('Habilitando formulario');
+        inputs.forEach(input => input.disabled = false);
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Enviar Mensaje';
@@ -96,11 +178,11 @@ function toggleContactForm() {
         if (contactLock) {
             contactLock.classList.add('hidden'); // Ocultar mensaje
         }
+        if (contactForm) contactForm.reset();
     } else {
-        // Deshabilitar formulario si no hay sesión
-        if (contactForm) {
-            inputs.forEach(input => input.disabled = true);
-        }
+        // Deshabilitar: Bloquear envío de mensajes
+        console.log('Deshabilitando formulario');
+        inputs.forEach(input => input.disabled = true);
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Inicia Sesión para Enviar';
@@ -123,72 +205,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 100);
 
-    // Sistema de Autenticación
-    let currentUser  = null; // Para rastrear sesión activa
-
-    // Función para mostrar/ocultar modales
-    function showModal(modalId) {
-        document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
-        document.getElementById(modalId).classList.add('active');
-    }
-
-    function hideModal() {
-        document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
-    }
-
-    // Funciones auxiliares para localStorage ("BD")
-    function getUsersFromStorage() {
-        const users = localStorage.getItem('users');
-        return users ? JSON.parse(users) : [];
-    }
-
-    function saveUsersToStorage(users) {
-        localStorage.setItem('users', JSON.stringify(users));
-    }
-
-    function showError(element, message) {
-        element.innerHTML = message;
-        element.classList.add('show');
-        // Limpiar error después de 5s
-        setTimeout(() => element.classList.remove('show'), 5000);
-    }
-
-    function updateHeaderForLoggedIn() {
-        const loginLink = document.getElementById('login-link');
-        if (loginLink && currentUser ) {
-            loginLink.innerHTML = `<a href="#">Hola, ${currentUser .name} (Cerrar Sesión)</a>`;
-            const logoutLink = loginLink.querySelector('a');
-            logoutLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                currentUser  = null;
-                localStorage.removeItem('currentUser ');
-                loginLink.innerHTML = '<a href="#" id="show-login">Iniciar Sesión</a>';
-                // Re-asignar event listener al nuevo botón
-                const newShowLogin = document.getElementById('show-login');
-                if (newShowLogin) {
-                    newShowLogin.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        showModal('login-modal');
-                    });
-                }
-                toggleContactForm(); // Deshabilitar formulario al logout
-                alert('Sesión cerrada.');
-            });
-        } else if (loginLink) {
-            // Restaurar botón original si no hay sesión
-            loginLink.innerHTML = '<a href="#" id="show-login">Iniciar Sesión</a>';
-            const showLoginBtn = document.getElementById('show-login');
-            if (showLoginBtn) {
-                showLoginBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showModal('login-modal');
-                });
-            }
+    // Listener para cambios de estado de auth (persistencia automática de Firebase)
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            console.log('Usuario logueado:', user.email);
+            updateHeaderForLoggedIn(user);
+            toggleContactForm(); // Habilitar si logueado
+        } else {
+            console.log('No hay usuario logueado');
+            updateHeaderForLoggedIn(null);
+            toggleContactForm(); // Deshabilitar
         }
-    }
+    });
 
-    // Event listeners para modales y autenticación
-    // Botón para mostrar login (en header)
+    // Event listeners para modales
     const showLoginBtn = document.getElementById('show-login');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', (e) => {
@@ -197,19 +227,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Cerrar modales al clic en X
     document.querySelectorAll('.close').forEach(closeBtn => {
         closeBtn.addEventListener('click', hideModal);
     });
 
-    // Cerrar modal al clic fuera
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) hideModal();
         });
     });
 
-    // Enlace de registro desde login
     const showRegFromLogin = document.getElementById('show-register');
     if (showRegFromLogin) {
         showRegFromLogin.addEventListener('click', (e) => {
@@ -219,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Enlace de login desde registro
     const showLoginFromReg = document.getElementById('show-login-from-reg');
     if (showLoginFromReg) {
         showLoginFromReg.addEventListener('click', (e) => {
@@ -229,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro
+    // Lógica de Registro con Firebase
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -264,26 +290,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Verificar si email ya existe (consulta "BD")
-            const users = getUsersFromStorage();
-            if (users.find(user => user.email === email)) {
-                showError(errorEl, 'Este correo ya está registrado. Inicia sesión.');
-                return;
-            }
-
-            // Guardar nuevo usuario en localStorage
-            const newUser  = { name, email, password }; // En producción: hashear password
-            users.push(newUser );
-            saveUsersToStorage(users);
-
-            alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
-            registerForm.reset();
-            hideModal();
-            showModal('login-modal');
+            // Crear usuario en Firebase Auth
+            auth.createUser WithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    // Guardar datos adicionales en Firestore
+                    db.collection('users').doc(user.uid).set({
+                        name: name,
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        alert('¡Registro exitoso! Bienvenido.');
+                        registerForm.reset();
+                        hideModal();
+                        // El onAuthStateChanged se activará automáticamente para habilitar formulario y header
+                    }).catch((error) => {
+                        console.error('Error al guardar en Firestore:', error);
+                        showError(errorEl, 'Error al guardar datos de usuario.');
+                    });
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/email-already-in-use') {
+                        showError(errorEl, 'Este correo ya está registrado. Inicia sesión.');
+                    } else if (error.code === 'auth/weak-password') {
+                        showError(errorEl, 'La contraseña es débil. Usa al menos 6 caracteres.');
+                    } else {
+                        showError(errorEl, 'Error en registro: ' + error.message);
+                    }
+                });
         });
     }
 
-    // Lógica de Login
+    // Lógica de Login con Firebase
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -299,78 +337,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Consultar "BD" localStorage
-            const users = getUsersFromStorage();
-            const user = users.find(u => u.email === email && u.password === password);
-
-            if (!user) {
-                let errorMsg = 'Correo o contraseña incorrectos.';
-                if (!document.getElementById('show-register-error')) {
-                    errorMsg += ' ¿No estás registrado? <a href="#" id="show-register-error">Regístrate aquí</a>';
-                }
-                showError(errorEl, errorMsg);
-
-                // Agregar enlace dinámico si no existe
-                const existingLink = document.getElementById('show-register-error');
-                if (!existingLink) {
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.id = 'show-register-error';
-                    link.innerHTML = 'Regístrate aquí';
-                    link.style.color = '#8B4513'; // Usar primary-color
-                    link.style.textDecoration = 'none';
-                    link.style.cursor = 'pointer';
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        hideModal();
-                        showModal('register-modal');
-                    });
-                    errorEl.appendChild(document.createTextNode(' '));
-                    errorEl.appendChild(link);
-                }
-                return;
-            }
-
-            // Login exitoso
-            currentUser  = user;
-            localStorage.setItem('currentUser ', JSON.stringify(currentUser )); // Persistencia
-            alert(`¡Bienvenido, ${user.name}!`);
-            loginForm.reset();
-            hideModal();
-            updateHeaderForLoggedIn();
-            toggleContactForm(); // Habilitar formulario y ocultar mensaje al login
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    alert(`¡Bienvenido!`);
+                    loginForm.reset();
+                    hideModal();
+                    // onAuthStateChanged maneja el header y formulario automáticamente
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        showError(errorEl, 'Correo o contraseña incorrectos.');
+                    } else {
+                        showError(errorEl, 'Error en login: ' + error.message);
+                    }
+                });
         });
     }
 
-    // Cargar sesión si existe (persistencia)
-    const savedUser  = localStorage.getItem('currentUser ');
-    if (savedUser ) {
-        currentUser  = JSON.parse(savedUser );
-        updateHeaderForLoggedIn();
-    }
-
-    // Inicializar estado del formulario de contacto
-    toggleContactForm();
-
-    // Event listener para enlace "iniciar sesión" en mensaje de bloqueo (abre modal de login)
+    // Event listener para enlace "iniciar sesión" en mensaje de bloqueo
     const contactLoginLink = document.getElementById('contact-login-link');
     if (contactLoginLink) {
         contactLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
-            showModal('login-modal'); // Envía directamente al modal de inicio de sesión
+            showModal('login-modal');
         });
     }
 
-    // Validación y envío del formulario con EmailJS (modificado para restricción)
+    // Validación y envío del formulario con EmailJS (adaptado a Firebase)
     const contactFormRestricted = document.getElementById('contact-form-restricted');
     if (contactFormRestricted) {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            // Check de sesión antes de proceder (redundante con disabled, pero extra seguridad)
-            if (!currentUser ) {
+            if (!auth.currentUser ) {
                 alert('Debes iniciar sesión para enviar mensajes.');
-                showModal('login-modal'); // Si por algún motivo no está logueado, abre modal
+                showModal('login-modal');
                 return;
             }
 
@@ -378,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const emailInput = contactFormRestricted.querySelector('input[type="email"]');
             let isValid = true;
 
-            // Regex simple para validar email
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             inputs.forEach(input => {
@@ -410,4 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Inicializar estado del formulario (se llamará via onAuthStateChanged)
+    toggleContactForm();
 });
