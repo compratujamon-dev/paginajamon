@@ -164,7 +164,7 @@ function updateHeaderForLoggedIn(user) {
 
 // Toggle formulario de contacto
 function toggleContactForm() {
-    const user = auth.currentUser ;
+    const user = auth.currentUser  ;
     console.log('toggleContactForm: Usuario autenticado:', !!user);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listeners para modales (CORREGIDO: Con logs y stopPropagation para asegurar que funcionen)
+    // Listeners para modales (con logs y stopPropagation)
     console.log('Agregando listeners de modales...');
     const showLoginBtn = document.getElementById('show-login');
     if (showLoginBtn) {
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            const user = auth.currentUser ;
+            const user = auth.currentUser  ;
             if (!user) {
                 alert('Debes iniciar sesión para enviar mensajes.');
                 showModal('login-modal');
@@ -416,4 +416,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Parámetros para EmailJS (incluye datos de usuario)
                 const templateParams = {
-                    user_name:
+                    user_name: userName,
+                    user_email: user.email,
+                    from_name: fromName,
+                    from_email: fromEmail,
+                    message: message
+                };
+
+                                console.log('Enviando email con params:', templateParams);
+                                // Aquí deberías agregar la lógica para enviar el email con EmailJS, por ejemplo:
+                                emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
+                                    .then(function(response) {
+                                        alert('Mensaje enviado correctamente.');
+                                        contactFormRestricted.reset();
+                                    }, function(error) {
+                                        alert('Error al enviar el mensaje: ' + error.text);
+                                    });
+                            }).catch((error) => {
+                                alert('Error al obtener datos del usuario: ' + error.message);
+                            });
+                        });
+                    }
+                });
