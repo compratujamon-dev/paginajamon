@@ -1,6 +1,6 @@
 // Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console - ¡OBLIGATORIO!)
 const firebaseConfig = {
- apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
+  apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
   authDomain: "solocorte-auth.firebaseapp.com",
   projectId: "solocorte-auth",
   storageBucket: "solocorte-auth.firebasestorage.app",
@@ -19,8 +19,8 @@ try {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Inicializar EmailJS con tu Public Key (para v4)
-emailjs.init("IKUkRhnZ6eu1NSnBO");  // Reemplaza con tu Public Key real
+// Inicializar EmailJS con tu Public Key (para v4 - REEMPLAZA CON EL REAL)
+emailjs.init("IKUkRhnZ6eu1NSnBO");  // Tu Public Key de emailjs.com
 
 // Lista de dominios reales permitidos (para validar emails "reales")
 const allowedDomains = [
@@ -129,10 +129,12 @@ function hideModal() {
 
 function showError(element, message) {
     if (element) {
-        element.textContent = message;  // Usa textContent para evitar HTML injection
+        element.textContent = message;
         element.style.display = 'block';
+        element.classList.add('show');  // Asume CSS para .show { opacity: 1; }
         setTimeout(() => {
             element.style.display = 'none';
+            element.classList.remove('show');
         }, 5000);
     }
 }
@@ -147,21 +149,39 @@ function updateHeaderForLoggedIn(user) {
             const name = user.email.split('@')[0];
             headerText = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
             loginLink.innerHTML = headerText;
-            loginLink.querySelector('a').addEventListener('click', (e) => {
-                e.preventDefault();
-                auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error al cerrar sesión.'));
-            });
+            const logoutLink = loginLink.querySelector('a');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    auth.signOut().then(() => {
+                        alert('Sesión cerrada correctamente.');
+                    }).catch((error) => {
+                        console.error('Error al cerrar sesión:', error);
+                        alert('Error al cerrar sesión.');
+                    });
+                });
+            }
             // Cargar nombre completo de Firestore
             db.collection('users').doc(user.uid).get().then((doc) => {
                 if (doc.exists) {
                     const fullName = doc.data().name;
                     loginLink.innerHTML = `<a href="#">Hola, ${fullName} (Cerrar Sesión)</a>`;
-                    loginLink.querySelector('a').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error al cerrar sesión.'));
-                    });
+                    const newLogoutLink = loginLink.querySelector('a');
+                    if (newLogoutLink) {
+                        newLogoutLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            auth.signOut().then(() => {
+                                alert('Sesión cerrada correctamente.');
+                            }).catch((error) => {
+                                console.error('Error al cerrar sesión:', error);
+                                alert('Error al cerrar sesión.');
+                            });
+                        });
+                    }
                 }
-            }).catch((error) => console.error('Error cargando nombre de Firestore:', error));
+            }).catch((error) => {
+                console.error('Error cargando nombre de Firestore:', error);
+            });
         } else {
             // No verificado: Muestra mensaje y botón reenvío
             const name = user.email.split('@')[0];
@@ -179,12 +199,19 @@ function updateHeaderForLoggedIn(user) {
                     });
                 });
             }
-            // Logout
+            // Logout link
             const logoutLink = loginLink.querySelector('a');
             if (logoutLink) {
                 logoutLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error al cerrar sesión.'));
+                    if (e.target.tagName !== 'BUTTON') {
+                        e.preventDefault();
+                        auth.signOut().then(() => {
+                            alert('Sesión cerrada correctamente.');
+                        }).catch((error) => {
+                            console.error('Error al cerrar sesión:', error);
+                            alert('Error al cerrar sesión.');
+                        });
+                    }
                 });
             }
         }
@@ -253,17 +280,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Usuario logueado:', user.email, 'Verificado:', user.emailVerified);
             updateHeaderForLoggedIn(user);
             toggleContactForm();
-            // Recarga verificación si pendiente (chequea cada 10s)
+            // Chequea verificación periódicamente si pendiente
             if (!user.emailVerified) {
                 const checkInterval = setInterval(() => {
                     user.reload().then(() => {
                         const updatedUser  = auth.currentUser ;
                         if (updatedUser  && updatedUser .emailVerified) {
                             clearInterval(checkInterval);
-                            location.reload();  // Recarga para actualizar UI
+                            alert('¡Email verificado! Recargando página...');
+                            location.reload();
                         }
-                    }).catch((error) => console.error('Error recargando usuario:', error));
-                }, 10000);  // Cada 10s
+                    }).catch((error) => {
+                        console.error('Error recargando usuario:', error);
+                    });
+                }, 10000);  // Cada 10 segundos
             }
         } else {
             console.log('No hay usuario logueado');
@@ -275,52 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listeners para modales
     console.log('Agregando listeners de modales...');
     const showLoginBtn = document.getElementById('show-login');
-    if (showLoginBtn) {
-        showLoginBtn.addEventListener('click', (e) => {
-            console.log('Clic en show-login detectado');
-            e.preventDefault();
-            e.stopPropagation();
-            showModal('login-modal');
-        });
-    } else {
-        console.error('Elemento #show-login no encontrado');
-    }
-
-    document.querySelectorAll('.close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', hideModal);
+        if (showLoginBtn) {
+            showLoginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal('login-modal');
+            });
+        }
     });
-
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) hideModal();
-        });
-    });
-
-    const showRegFromLogin = document.getElementById('show-register');
-    if (showRegFromLogin) {
-        showRegFromLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            hideModal();
-            showModal('register-modal');
-        });
-    }
-
-    const showLoginFromReg = document.getElementById('show-login-from-reg');
-    if (showLoginFromReg) {
-        showLoginFromReg.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            hideModal();
-            showModal('login-modal');
-        });
-    }
-
-    // Lógica de Registro (con validación de dominio y envío de verificación)
-    const registerForm = document.getElementById('register-form');
-    if (registerForm) {
-        registerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById('reg-name').value.trim();
-            const email = document.getElementById('reg-email').value
