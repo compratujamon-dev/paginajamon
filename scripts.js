@@ -104,6 +104,7 @@ function showModal(modalId) {
     document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.add('active');
+    console.log('Modal abierto:', modalId);  // Log para depuración
 }
 
 function hideModal() {
@@ -122,7 +123,7 @@ function showError(element, message) {
 function updateHeaderForLoggedIn(user) {
     const loginLink = document.getElementById('login-link');
     if (loginLink && user) {
-        // Fallback simple: usa email como nombre (Firestore opcional para evitar errores)
+        // Fallback simple: usa email como nombre
         const name = user.email.split('@')[0];
         loginLink.innerHTML = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
         const logoutLink = loginLink.querySelector('a');
@@ -137,12 +138,11 @@ function updateHeaderForLoggedIn(user) {
                 });
             });
         }
-        // Opcional: Cargar nombre de Firestore si quieres
+        // Opcional: Cargar nombre de Firestore
         db.collection('users').doc(user.uid).get().then((doc) => {
             if (doc.exists) {
                 const fullName = doc.data().name;
                 loginLink.innerHTML = `<a href="#">Hola, ${fullName} (Cerrar Sesión)</a>`;
-                // Re-agrega listener si cambió
                 const newLogoutLink = loginLink.querySelector('a');
                 if (newLogoutLink) newLogoutLink.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -163,7 +163,7 @@ function updateHeaderForLoggedIn(user) {
     }
 }
 
-// Toggle formulario de contacto (corregido: sin espacios)
+// Toggle formulario de contacto
 function toggleContactForm() {
     const user = auth.currentUser  ;
     console.log('toggleContactForm: Usuario autenticado:', !!user);
@@ -194,6 +194,7 @@ function toggleContactForm() {
 
 // DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM cargado, inicializando...');  // Log para confirmar
     preloadImages();
 
     setTimeout(() => {
@@ -214,14 +215,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listeners para modales
+    // Listeners para modales (CORREGIDO: Con logs y stopPropagation para asegurar que funcionen)
+    console.log('Agregando listeners de modales...');
     const showLoginBtn = document.getElementById('show-login');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', (e) => {
+            console.log('Clic en show-login detectado');  // Log para depuración
             e.preventDefault();
             e.stopPropagation();
             showModal('login-modal');
         });
+    } else {
+        console.error('Elemento #show-login no encontrado');
     }
 
     document.querySelectorAll('.close').forEach(closeBtn => {
@@ -254,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro (sin cambios)
+    // Lógica de Registro (sin cambios, método corregido)
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -267,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmPassword = document.getElementById('reg-confirm-password').value;
             const errorEl = document.getElementById('register-error');
 
-            // Validaciones
             if (!name || !email || !confirmEmail || !password || !confirmPassword) {
                 showError(errorEl, 'Todos los campos son obligatorios.');
                 return;
@@ -287,12 +291,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log('Iniciando registro con email:', email);
 
-            // Crear usuario en Auth y guardar en Firestore (cadena de promesas limpia)
-            auth.createUserWithEmailAndPassword(email, password)  // CORREGIDO: Sin espacio
+            auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
                     console.log('Usuario creado en Auth:', user.uid);
-                    // Guardar en Firestore
                     return db.collection('users').doc(user.uid).set({
                         name: name,
                         email: email,
@@ -354,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Enlace en contacto (sin cambios)
+    // Enlace en contacto
     const contactLoginLink = document.getElementById('contact-login-link');
     if (contactLoginLink) {
         contactLoginLink.addEventListener('click', (e) => {
@@ -377,8 +379,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Obtener datos del formulario
+            const fromName = contactFormRestricted.querySelector('input[name="from_name"]').value.trim();  // Asume name="from_name" en input
+            const fromEmail = contactFormRestricted.querySelector('input[name="from_email"]').value.trim();  // Asume name="from_email"
+            const message = contactFormRestricted.querySelector('textarea[name="message"]').value.trim();  // Asume name="message"
+
+            // Validación básica
             const inputs = contactFormRestricted.querySelectorAll('input, textarea');
-            const fromNameInput = contactFormRestricted.querySelector('input[name="from_name"]');  // Asume name="from_name" en HTML
-            const fromEmailInput = contactFormRestricted.querySelector('input[name="from_email"]');  // Asume name="from_email"
-            const messageInput = contactFormRestricted.querySelector('textarea[name="message"]');  // Asume name="message"
             const emailInput = contactFormRestricted.querySelector('input[type="email"]');
+            let isValid = true;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = 'red';
+                    isValid = false;
+                } else {
+                    input.style.borderColor = '#ddd';
+                    if (input === emailInput && !emailRegex.test(input.value)) {
+                        input.style.borderColor = 'red';
+                        isValid = false;
+                    }
+                }
+            });
+
+            if (!isValid || !fromName || !fromEmail || !message) {
+                alert('Por favor, completa todos los campos correctamente.');
+                return;
+            }
+
+            // Obtener nombre del usuario de Firestore (fallback a email)
+            let userName = user.email.split('@')[0];  // Fallback
+            db.collection('users').doc(user.uid).get().then((doc) => {
+                if (doc.exists) {
+                    userName = doc.data().name || userName;
+                }
+
+                // Parámetros para EmailJS (incluye datos de usuario)
+                const templateParams = {
+                    user_name: userName,  // Nombre del usuario logueado
+                    user_email: user.email,  // Email del usuario logueado
+                    from_name: fromName,  // Nombre del form
+                    from_email: fromEmail,  // Email del form
+                    message: message  // Mensaje
+                };
+
+                console.log('Enviando email con params:', templateParams);
+
+                // Enviar
