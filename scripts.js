@@ -234,7 +234,7 @@ function updateHeaderForLoggedIn(user) {
 
 // Toggle formulario de contacto (solo si verificado)
 function toggleContactForm() {
-    const user = auth.currentUser ;
+    const user = auth.currentUser;
     console.log('toggleContactForm: Usuario autenticado:', !!user, 'Verificado:', user ? user.emailVerified : false);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -277,5 +277,10 @@ if (loginForm) {
         const password = document.getElementById('login-password').value;
         const errorEl = document.getElementById('login-error');
 
-        if (!email || !password) {
-            showError(errorEl, 'Por favor completa todos los campos.');
+                if (!email || !password) {
+                    showError(errorEl, 'Por favor ingresa tu correo y contraseña.');
+                    return;
+                }
+                // Aquí continúa la lógica de autenticación...
+            });
+        }
