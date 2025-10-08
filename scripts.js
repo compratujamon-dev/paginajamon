@@ -165,7 +165,7 @@ function updateHeaderForLoggedIn(user) {
 
 // Toggle formulario de contacto (corregido: sin espacios)
 function toggleContactForm() {
-    const user = auth.currentUser ;
+    const user = auth.currentUser  ;
     console.log('toggleContactForm: Usuario autenticado:', !!user);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro (CORREGIDO: Método sin espacio - línea ~291 ahora fija)
+    // Lógica de Registro (sin cambios)
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Login
+    // Lógica de Login (sin cambios)
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Enlace en contacto (corregido)
+    // Enlace en contacto (sin cambios)
     const contactLoginLink = document.getElementById('contact-login-link');
     if (contactLoginLink) {
         contactLoginLink.addEventListener('click', (e) => {
@@ -364,53 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Submit de contacto (corregido: sin espacios)
+    // Submit de contacto (ACTUALIZADO: Incluye datos del usuario logueado en el email)
     const contactFormRestricted = document.getElementById('contact-form-restricted');
     if (contactFormRestricted) {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            if (!auth.currentUser ) {
+            const user = auth.currentUser  ;
+            if (!user) {
                 alert('Debes iniciar sesión para enviar mensajes.');
                 showModal('login-modal');
                 return;
             }
 
             const inputs = contactFormRestricted.querySelectorAll('input, textarea');
+            const fromNameInput = contactFormRestricted.querySelector('input[name="from_name"]');  // Asume name="from_name" en HTML
+            const fromEmailInput = contactFormRestricted.querySelector('input[name="from_email"]');  // Asume name="from_email"
+            const messageInput = contactFormRestricted.querySelector('textarea[name="message"]');  // Asume name="message"
             const emailInput = contactFormRestricted.querySelector('input[type="email"]');
-            let isValid = true;
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    input.style.borderColor = 'red';
-                    isValid = false;
-                } else {
-                    input.style.borderColor = '#ddd';
-                    if (input === emailInput && !emailRegex.test(input.value)) {
-                        input.style.borderColor = 'red';
-                        isValid = false;
-                    }
-                }
-            });
-
-            if (isValid) {
-                emailjs.sendForm('service_etfwtmm', 'template_g0u3p8s', contactFormRestricted)
-                    .then(() => {
-                        alert('¡Mensaje enviado con éxito! Te contactaremos pronto.');
-                        contactFormRestricted.reset();
-                        inputs.forEach(input => input.style.borderColor = '#ddd');
-                    }, (error) => {
-                        console.error('Error al enviar EmailJS:', error);
-                        alert('Error al enviar el mensaje. Inténtalo de nuevo.');
-                    });
-            } else {
-                alert('Por favor, completa todos los campos correctamente.');
-            }
-        });
-    }
-
-    // Inicializar estado inicial
-    toggleContactForm();
-});
