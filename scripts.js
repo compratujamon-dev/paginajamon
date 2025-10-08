@@ -1,11 +1,12 @@
 // Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console - ¡OBLIGATORIO!)
 const firebaseConfig = {
-  apiKey: "AIzaSyD...TU_API_KEY_AQUI",  // COPIA EL REAL AQUÍ (de Project Settings)
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+ apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
+  authDomain: "solocorte-auth.firebaseapp.com",
+  projectId: "solocorte-auth",
+  storageBucket: "solocorte-auth.firebasestorage.app",
+  messagingSenderId: "567755213765",
+  appId: "1:567755213765:web:30c6d1586048f5a78119ac",
+  measurementId: "G-VVCV84Y6W4"	
 };
 
 // Inicializar Firebase
@@ -41,30 +42,6 @@ if (menuToggle && navMenu) {
     menuToggle.addEventListener('click', () => {
         navMenu.classList.toggle('active');
         menuToggle.classList.toggle('active');
-        });
-    })
-    .then(() => {
-        alert('Registro exitoso. Se ha enviado un email de verificación. Revisa tu bandeja (incluyendo spam).');
-        registerForm.reset();
-        hideModal();
-    })
-    .catch((error) => {
-        console.error('Error en registro:', error.code, error.message);
-        let message = 'Error desconocido.';
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                message = 'El email ya está registrado.';
-                break;
-            case 'auth/invalid-email':
-                message = 'Email inválido.';
-                break;
-            case 'auth/weak-password':
-                message = 'Contraseña débil. Usa al menos 6 caracteres.';
-                break;
-            default:
-                message = error.message;
-        }
-        showError(errorEl, message);
     });
 }
 
@@ -257,7 +234,7 @@ function updateHeaderForLoggedIn(user) {
 
 // Toggle formulario de contacto (solo si verificado)
 function toggleContactForm() {
-    const user = auth.currentUser;
+    const user = auth.currentUser ;
     console.log('toggleContactForm: Usuario autenticado:', !!user, 'Verificado:', user ? user.emailVerified : false);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -301,99 +278,4 @@ if (loginForm) {
         const errorEl = document.getElementById('login-error');
 
         if (!email || !password) {
-            showError(errorEl, 'Email y contraseña son obligatorios.');
-            return;
-        }
-
-        console.log('Iniciando login con email:', email);
-
-        auth.signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                const user = userCredential.user;
-                console.log('Login exitoso:', user.email, 'Verificado:', user.emailVerified);
-                if (!user.emailVerified) {
-                    alert('Login exitoso, pero verifica tu email para usar el formulario de contacto.');
-                } else {
-                    alert('¡Bienvenido! Puedes enviar mensajes ahora.');
-                }
-                loginForm.reset();
-                hideModal();
-            })
-            .catch((error) => {
-                console.error('Error en login:', error.code, error.message);
-                let message = 'Error desconocido.';
-                switch (error.code) {
-                    case 'auth/user-not-found':
-                        message = 'Usuario no encontrado. Regístrate primero.';
-                        break;
-                    case 'auth/wrong-password':
-                        message = 'Contraseña incorrecta.';
-                        break;
-                    case 'auth/invalid-email':
-                        message = 'Email inválido.';
-                        break;
-                    case 'auth/too-many-requests':
-                        message = 'Demasiados intentos. Espera un momento.';
-                        break;
-                    default:
-                        message = error.message;
-                }
-                showError(errorEl, message);
-            });
-    }
-}
-
-// Lógica de Registro (completa, con catch y switch completos)
-const registerForm = document.getElementById('register-form');
-if (registerForm) {
-    registerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('reg-name').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const confirmEmail = document.getElementById('reg-confirm-email').value.trim();
-        const password = document.getElementById('reg-password').value;
-        const confirmPassword = document.getElementById('reg-confirm-password').value;
-        const errorEl = document.getElementById('register-error');
-
-        // Validaciones básicas
-        if (!name || !email || !confirmEmail || !password || !confirmPassword) {
-            showError(errorEl, 'Todos los campos son obligatorios.');
-            return;
-        }
-        if (email !== confirmEmail) {
-            showError(errorEl, 'Los correos electrónicos no coinciden.');
-            return;
-        }
-        if (password.length < 6) {
-            showError(errorEl, 'La contraseña debe tener al menos 6 caracteres.');
-            return;
-        }
-        if (password !== confirmPassword) {
-            showError(errorEl, 'Las contraseñas no coinciden.');
-            return;
-        }
-        // Validación de dominio real
-        if (!isValidDomain(email)) {
-            showError(errorEl, 'Usa un email real de un proveedor conocido (ej. @gmail.com, @outlook.com).');
-            return;
-        }
-
-        console.log('Iniciando registro con email:', email);
-
-        auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                const user = userCredential.user;
-                console.log('Usuario creado en Auth:', user.uid);
-                // Enviar email de verificación
-                return user.sendEmailVerification({
-                    url: window.location.origin,  // Redirige a tu sitio después de verificar
-                    handleCodeInApp: true
-                }).then(() => {
-                    // Guardar nombre en Firestore
-                    return db.collection('users').doc(user.uid).set({
-                        name: name,
-                        email: email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                });
+            showError(errorEl, 'Por favor completa todos los campos.');
