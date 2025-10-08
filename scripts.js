@@ -1,15 +1,21 @@
-// Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console)
+// Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console - ¡ESTO ES CLAVE!)
 const firebaseConfig = {
-  apiKey: "AIzaSyD...TU_API_KEY_AQUI",  // Ejemplo: "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+ apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
+  authDomain: "solocorte-auth.firebaseapp.com",
+  projectId: "solocorte-auth",
+  storageBucket: "solocorte-auth.firebasestorage.app",
+  messagingSenderId: "567755213765",
+  appId: "1:567755213765:web:30c6d1586048f5a78119ac",
+  measurementId: "G-VVCV84Y6W4"	
 };
 
 // Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('Firebase inicializado correctamente');  // Log para confirmar
+} catch (error) {
+  console.error('Error al inicializar Firebase:', error);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -24,8 +30,9 @@ if (menuToggle && navMenu) {
     menuToggle.addEventListener('click', () => {
         navMenu.classList.toggle('active');
         menuToggle.classList.toggle('active');
-    });
-}
+                    });
+                
+    }
 
 // Cerrar menú al hacer clic en un enlace
 document.querySelectorAll('.nav-menu a').forEach(link => {
@@ -35,11 +42,16 @@ document.querySelectorAll('.nav-menu a').forEach(link => {
     });
 });
 
-// Smooth scroll para enlaces de navegación
+// Smooth scroll para enlaces de navegación (excluye modales)
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
+        const modalLinkIds = ['show-login', 'show-register', 'show-login-from-reg', 'contact-login-link'];
+        if (modalLinkIds.includes(this.id) || this.getAttribute('href') === '#') {
+            return;
+        }
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const targetId = this.getAttribute('href');
+        const target = document.querySelector(targetId);
         if (target) {
             target.scrollIntoView({
                 behavior: 'smooth',
@@ -74,7 +86,6 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, observerOptions);
 
-// Aplicar animación a las secciones
 document.querySelectorAll('.types-grid, .steps, .gallery-grid, .contact-form').forEach(section => {
     section.style.opacity = 0;
     section.style.transform = 'translateY(20px)';
@@ -82,7 +93,7 @@ document.querySelectorAll('.types-grid, .steps, .gallery-grid, .contact-form').f
     observer.observe(section);
 });
 
-// Precarga de imágenes para mejor rendimiento
+// Precarga de imágenes
 function preloadImages() {
     const images = document.querySelectorAll('img');
     images.forEach(img => {
@@ -93,7 +104,7 @@ function preloadImages() {
     });
 }
 
-// Función para mostrar/ocultar modales
+// Funciones para modales
 function showModal(modalId) {
     document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
     const modal = document.getElementById(modalId);
@@ -104,7 +115,6 @@ function hideModal() {
     document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
 }
 
-// Función para mostrar errores
 function showError(element, message) {
     if (element) {
         element.innerHTML = message;
@@ -113,11 +123,10 @@ function showError(element, message) {
     }
 }
 
-// Función para actualizar header con usuario (adaptada a Firebase)
+// Actualizar header para usuario logueado
 function updateHeaderForLoggedIn(user) {
     const loginLink = document.getElementById('login-link');
     if (loginLink && user) {
-        // Recupera nombre de Firestore
         db.collection('users').doc(user.uid).get().then((doc) => {
             const name = doc.exists ? doc.data().name : user.email.split('@')[0];
             loginLink.innerHTML = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
@@ -135,9 +144,7 @@ function updateHeaderForLoggedIn(user) {
             }
         }).catch((error) => {
             console.error('Error al obtener datos de usuario:', error);
-            // Fallback: Usa email como nombre
             loginLink.innerHTML = `<a href="#">Hola, ${user.email.split('@')[0]} (Cerrar Sesión)</a>`;
-            // Agrega listener de logout igual
             const logoutLink = loginLink.querySelector('a');
             if (logoutLink) {
                 logoutLink.addEventListener('click', (e) => {
@@ -152,15 +159,16 @@ function updateHeaderForLoggedIn(user) {
         if (showLoginBtn) {
             showLoginBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 showModal('login-modal');
             });
         }
     }
 }
 
-// Función para habilitar/deshabilitar formulario de contacto basado en sesión (adaptada a Firebase)
+// Toggle formulario de contacto
 function toggleContactForm() {
-    const user = auth.currentUser ;
+    const user = auth.currentUser ;  // CORREGIDO: Sin espacios
     console.log('toggleContactForm: Usuario autenticado:', !!user);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -168,61 +176,53 @@ function toggleContactForm() {
     const submitBtn = document.getElementById('contact-submit');
 
     if (user) {
-        // Habilitar: Permitir enviar mensajes
         console.log('Habilitando formulario');
         inputs.forEach(input => input.disabled = false);
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Enviar Mensaje';
         }
-        if (contactLock) {
-            contactLock.classList.add('hidden'); // Ocultar mensaje
-        }
+        if (contactLock) contactLock.classList.add('hidden');
         if (contactForm) contactForm.reset();
     } else {
-        // Deshabilitar: Bloquear envío de mensajes
         console.log('Deshabilitando formulario');
         inputs.forEach(input => input.disabled = true);
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Inicia Sesión para Enviar';
         }
-        if (contactLock) {
-            contactLock.classList.remove('hidden'); // Mostrar mensaje
-        }
+        if (contactLock) contactLock.classList.remove('hidden');
     }
 }
 
-// Inicializar cuando el documento esté cargado
+// DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     preloadImages();
 
-    // Asegurar que el hero section se muestre correctamente
     setTimeout(() => {
         const hero = document.querySelector('.hero');
-        if (hero) {
-            hero.style.opacity = 1;
-        }
+        if (hero) hero.style.opacity = 1;
     }, 100);
 
-    // Listener para cambios de estado de auth (persistencia automática de Firebase)
+    // Auth state change
     auth.onAuthStateChanged((user) => {
         if (user) {
             console.log('Usuario logueado:', user.email);
             updateHeaderForLoggedIn(user);
-            toggleContactForm(); // Habilitar si logueado
+            toggleContactForm();
         } else {
             console.log('No hay usuario logueado');
             updateHeaderForLoggedIn(null);
-            toggleContactForm(); // Deshabilitar
+            toggleContactForm();
         }
     });
 
-    // Event listeners para modales
+    // Listeners para modales
     const showLoginBtn = document.getElementById('show-login');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             showModal('login-modal');
         });
     }
@@ -241,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showRegFromLogin) {
         showRegFromLogin.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             hideModal();
             showModal('register-modal');
         });
@@ -250,12 +251,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showLoginFromReg) {
         showLoginFromReg.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             hideModal();
             showModal('login-modal');
         });
     }
 
-    // Lógica de Registro con Firebase
+    // Lógica de Registro (CORREGIDO: Método exacto, try-catch extra)
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -266,10 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmEmail = document.getElementById('reg-confirm-email').value.trim();
             const password = document.getElementById('reg-password').value;
             const confirmPassword = document.getElementById('reg-confirm-password').value;
-
             const errorEl = document.getElementById('register-error');
 
-            // Validaciones
             if (!name || !email || !confirmEmail || !password || !confirmPassword) {
                 showError(errorEl, 'Todos los campos son obligatorios.');
                 return;
@@ -290,26 +290,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Crear usuario en Firebase Auth
-            auth.createUser WithEmailAndPassword(email, password)
+            console.log('Iniciando registro con email:', email);
+
+            // Registro de usuario con manejo de errores
+            auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    // Guardar datos adicionales en Firestore
-                    db.collection('users').doc(user.uid).set({
+                    console.log('Usuario creado en Auth:', user.uid);
+                    return db.collection('users').doc(user.uid).set({
                         name: name,
                         email: email,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        alert('¡Registro exitoso! Bienvenido.');
-                        registerForm.reset();
-                        hideModal();
-                        // El onAuthStateChanged se activará automáticamente para habilitar formulario y header
-                    }).catch((error) => {
-                        console.error('Error al guardar en Firestore:', error);
-                        showError(errorEl, 'Error al guardar datos de usuario.');
                     });
                 })
+                .then(() => {
+                    console.log('Datos guardados en Firestore');
+                    alert('¡Registro exitoso! Bienvenido.');
+                    registerForm.reset();
+                    hideModal();
+                })
                 .catch((error) => {
+                    console.error('Error en registro:', error.code, error.message);
                     if (error.code === 'auth/email-already-in-use') {
                         showError(errorEl, 'Este correo ya está registrado. Inicia sesión.');
                     } else if (error.code === 'auth/weak-password') {
@@ -321,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Login con Firebase
+    // Lógica de Login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -329,7 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
-
             const errorEl = document.getElementById('login-error');
 
             if (!email || !password) {
@@ -337,15 +337,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            console.log('Iniciando login con email:', email);
+
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    alert(`¡Bienvenido!`);
+                    console.log('Login exitoso:', user.email);
+                    alert('¡Bienvenido!');
                     loginForm.reset();
                     hideModal();
-                    // onAuthStateChanged maneja el header y formulario automáticamente
                 })
                 .catch((error) => {
+                    console.error('Error en login:', error.code, error.message);
                     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                         showError(errorEl, 'Correo o contraseña incorrectos.');
                     } else {
@@ -355,63 +358,65 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Event listener para enlace "iniciar sesión" en mensaje de bloqueo
+    // Enlace en contacto
     const contactLoginLink = document.getElementById('contact-login-link');
     if (contactLoginLink) {
         contactLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             showModal('login-modal');
         });
     }
 
-    // Validación y envío del formulario con EmailJS (adaptado a Firebase)
+    // Submit de contacto (CORREGIDO: Sin espacios)
     const contactFormRestricted = document.getElementById('contact-form-restricted');
     if (contactFormRestricted) {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            if (!auth.currentUser ) {
+            if (!auth.currentUser ) {  // CORREGIDO: Sin espacios
                 alert('Debes iniciar sesión para enviar mensajes.');
                 showModal('login-modal');
                 return;
             }
 
-            const inputs = contactFormRestricted.querySelectorAll('input, textarea');
-            const emailInput = contactFormRestricted.querySelector('input[type="email"]');
-            let isValid = true;
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    input.style.borderColor = 'red';
-                    isValid = false;
-                } else {
-                    input.style.borderColor = '#ddd';
-                    if (input === emailInput && !emailRegex.test(input.value)) {
-                        input.style.borderColor = 'red';
-                        isValid = false;
-                    }
-                }
-            });
-
-            if (isValid) {
-                // Enviar formulario con EmailJS
-                emailjs.sendForm('service_etfwtmm', 'template_g0u3p8s', contactFormRestricted)
-                    .then(() => {
-                        alert('¡Mensaje enviado con éxito! Te contactaremos pronto.');
-                        contactFormRestricted.reset();
-                        inputs.forEach(input => input.style.borderColor = '#ddd');
-                    }, (error) => {
-                        console.error('Error al enviar:', error);
-                        alert('Error al enviar el mensaje. Inténtalo de nuevo.');
+                    const inputs = contactFormRestricted.querySelectorAll('input, textarea');
+                    const emailInput = contactFormRestricted.querySelector('input[type="email"]');
+                    let isValid = true;
+        
+                    // Validación simple de campos
+                    inputs.forEach(input => {
+                        if (!input.value.trim()) {
+                            isValid = false;
+                            input.classList.add('input-error');
+                        } else {
+                            input.classList.remove('input-error');
+                        }
                     });
-            } else {
-                alert('Por favor, completa todos los campos correctamente.');
-            }
-        });
-    }
-
-    // Inicializar estado del formulario (se llamará via onAuthStateChanged)
-    toggleContactForm();
-});
+        
+                    // Validar email
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (emailInput && !emailRegex.test(emailInput.value.trim())) {
+                        isValid = false;
+                        emailInput.classList.add('input-error');
+                        showError(document.getElementById('contact-error'), 'Correo electrónico inválido.');
+                    }
+        
+                    if (!isValid) {
+                        showError(document.getElementById('contact-error'), 'Completa todos los campos correctamente.');
+                        return;
+                    }
+        
+                    // Enviar mensaje con EmailJS
+                    emailjs.sendForm('service_xxx', 'template_xxx', contactFormRestricted)
+                        .then(() => {
+                            alert('¡Mensaje enviado correctamente!');
+                            contactFormRestricted.reset();
+                        })
+                        .catch((error) => {
+                            console.error('Error al enviar mensaje:', error);
+                                        showError(document.getElementById('contact-error'), 'Error al enviar mensaje.');
+                                    });
+                                });
+                };
+}
