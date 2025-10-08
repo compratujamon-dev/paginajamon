@@ -1,17 +1,20 @@
 // Inicializar Firebase (REEMPLAZA CON TU firebaseConfig REAL de Firebase Console - ¡OBLIGATORIO!)
 const firebaseConfig = {
- apiKey: "AIzaSyBaLo-MYL1r_2dskPwhvs922f07lZNGIvo",
-  authDomain: "solocorte-auth.firebaseapp.com",
-  projectId: "solocorte-auth",
-  storageBucket: "solocorte-auth.firebasestorage.app",
-  messagingSenderId: "567755213765",
-  appId: "1:567755213765:web:30c6d1586048f5a78119ac",
-  measurementId: "G-VVCV84Y6W4"	
+  apiKey: "AIzaSyD...TU_API_KEY_AQUI",  // COPIA EL REAL AQUÍ (de Project Settings)
+  authDomain: "tu-proyecto.firebaseapp.com",
+  projectId: "tu-proyecto",
+  storageBucket: "tu-proyecto.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
 };
 
 // Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-console.log('Firebase inicializado correctamente');  // Confirma en consola
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('Firebase inicializado correctamente');
+} catch (error) {
+  console.error('Error al inicializar Firebase:', error);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -37,12 +40,12 @@ document.querySelectorAll('.nav-menu a').forEach(link => {
     });
 });
 
-// Smooth scroll para enlaces de navegación (excluye modales para evitar scroll)
+// Smooth scroll para enlaces de navegación (excluye modales)
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         const modalLinkIds = ['show-login', 'show-register', 'show-login-from-reg', 'contact-login-link'];
         if (modalLinkIds.includes(this.id) || this.getAttribute('href') === '#') {
-            return;  // No hace scroll, solo modal
+            return;
         }
         e.preventDefault();
         const targetId = this.getAttribute('href');
@@ -104,7 +107,7 @@ function showModal(modalId) {
     document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('active'));
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.add('active');
-    console.log('Modal abierto:', modalId);  // Log para depuración
+    console.log('Modal abierto:', modalId);
 }
 
 function hideModal() {
@@ -119,26 +122,19 @@ function showError(element, message) {
     }
 }
 
-// Actualizar header para usuario logueado (simplificado)
+// Actualizar header para usuario logueado
 function updateHeaderForLoggedIn(user) {
     const loginLink = document.getElementById('login-link');
     if (loginLink && user) {
-        // Fallback simple: usa email como nombre
         const name = user.email.split('@')[0];
         loginLink.innerHTML = `<a href="#">Hola, ${name} (Cerrar Sesión)</a>`;
         const logoutLink = loginLink.querySelector('a');
         if (logoutLink) {
             logoutLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                auth.signOut().then(() => {
-                    alert('Sesión cerrada.');
-                }).catch((error) => {
-                    console.error('Error al cerrar sesión:', error);
-                    alert('Error al cerrar sesión.');
-                });
+                auth.signOut().then(() => alert('Sesión cerrada.')).catch(() => alert('Error.'));
             });
         }
-        // Opcional: Cargar nombre de Firestore
         db.collection('users').doc(user.uid).get().then((doc) => {
             if (doc.exists) {
                 const fullName = doc.data().name;
@@ -165,7 +161,7 @@ function updateHeaderForLoggedIn(user) {
 
 // Toggle formulario de contacto
 function toggleContactForm() {
-    const user = auth.currentUser  ;
+    const user = auth.currentUser ;
     console.log('toggleContactForm: Usuario autenticado:', !!user);
     const contactForm = document.getElementById('contact-form-restricted');
     const contactLock = document.getElementById('contact-lock');
@@ -194,7 +190,7 @@ function toggleContactForm() {
 
 // DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM cargado, inicializando...');  // Log para confirmar
+    console.log('DOM cargado, inicializando...');
     preloadImages();
 
     setTimeout(() => {
@@ -215,12 +211,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listeners para modales (con logs y stopPropagation)
+    // Listeners para modales
     console.log('Agregando listeners de modales...');
     const showLoginBtn = document.getElementById('show-login');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', (e) => {
-            console.log('Clic en show-login detectado');  // Log para depuración
+            console.log('Clic en show-login detectado');
             e.preventDefault();
             e.stopPropagation();
             showModal('login-modal');
@@ -259,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica de Registro (método corregido)
+    // Lógica de Registro
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -366,76 +362,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Submit de contacto (COMPLETO: Incluye datos del usuario logueado en el email)
+    // Submit de contacto (FIX COMPLETO: Envía mensaje con datos de usuario)
     const contactFormRestricted = document.getElementById('contact-form-restricted');
     if (contactFormRestricted) {
         contactFormRestricted.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            const user = auth.currentUser  ;
+            const user = auth.currentUser ;
             if (!user) {
                 alert('Debes iniciar sesión para enviar mensajes.');
                 showModal('login-modal');
                 return;
             }
 
-            // Obtener datos del formulario (asume names en HTML: from_name, from_email, message)
+            // Obtener datos del formulario
             const fromName = contactFormRestricted.querySelector('input[name="from_name"]').value.trim();
             const fromEmail = contactFormRestricted.querySelector('input[name="from_email"]').value.trim();
             const message = contactFormRestricted.querySelector('textarea[name="message"]').value.trim();
 
             // Validación
-            const inputs = contactFormRestricted.querySelectorAll('input, textarea');
-            const emailInput = contactFormRestricted.querySelector('input[type="email"]');
-            let isValid = true;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    input.style.borderColor = 'red';
-                    isValid = false;
-                } else {
-                    input.style.borderColor = '#ddd';
-                    if (input === emailInput && !emailRegex.test(input.value)) {
-                        input.style.borderColor = 'red';
-                        isValid = false;
-                    }
-                }
-            });
-
-            if (!isValid || !fromName || !fromEmail || !message) {
+            if (!fromName || !fromEmail || !message) {
                 alert('Por favor, completa todos los campos correctamente.');
                 return;
             }
 
-            // Obtener nombre del usuario de Firestore (fallback a email)
-            let userName = user.email.split('@')[0];
-            db.collection('users').doc(user.uid).get().then((doc) => {
-                if (doc.exists && doc.data().name) {
-                    userName = doc.data().name;
-                }
-
-                // Parámetros para EmailJS (incluye datos de usuario)
-                const templateParams = {
-                    user_name: userName,
-                    user_email: user.email,
-                    from_name: fromName,
-                    from_email: fromEmail,
-                    message: message
-                };
-
-                                console.log('Enviando email con params:', templateParams);
-                                // Aquí deberías agregar la lógica para enviar el email con EmailJS, por ejemplo:
-                                emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
-                                    .then(function(response) {
-                                        alert('Mensaje enviado correctamente.');
-                                        contactFormRestricted.reset();
-                                    }, function(error) {
-                                        alert('Error al enviar el mensaje: ' + error.text);
-                                    });
-                            }).catch((error) => {
-                                alert('Error al obtener datos del usuario: ' + error.message);
-                            });
-                        });
-                    }
-                });
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(fromEmail)) {
+                alert('Email inválido
